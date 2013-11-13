@@ -10,7 +10,6 @@ MAGIC = "@flattened@"
 def is_up_to_date(a, b):
     return os.path.exists(a) and os.stat(a).st_mtime >= os.stat(b).st_mtime
 
-
 def ext_is_flat(ext):
     with open(ext) as fh:
         t = fh.read(len(MAGIC))
@@ -217,6 +216,29 @@ class NpyFastaRecord(FastaRecord):
             'data': data,
         }
 
+try:
+    from blist import blist
+
+    class MutNpyFastaRecord(NpyFastaRecord):
+        def __init__(self, mm, start, stop):
+            self.mm = mm
+            self.start = start
+            self.stop = stop
+    
+            self.muts = blist([0])
+            self.muts *= self.stop - self.start
+    
+        def __setitem__(self, islice, value):
+            self.muts[islice] = value
+    
+        def __getitem__(self, islice):
+            d = self.getdata(islice)
+            s = self.muts[islice]
+            f = [d1 if s1 == 0 else s1 for d1, s1 in zip(d, s)] 
+    
+            return "".join(map(str, f))
+except ImportError:
+    pass
 
 class MemoryRecord(FastaRecord):
     """
